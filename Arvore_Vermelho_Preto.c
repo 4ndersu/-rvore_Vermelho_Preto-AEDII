@@ -15,19 +15,45 @@ typedef struct Node{
     struct Node* left;
     struct Node* right;
     struct Node* parent;
-    short height;//altura do nó
 } Node;
 
+//Definição da estrutura da árvore vermelho-preto
+typedef struct {
+    Node *root;
+    Node *nil; //nó sentinela para representar os nós nulos
+} RBTree;
+
+//Função para alocar memória para uma arvore vermelho-preto
+RBTree* rbTreeAlloc(){
+    //Aloca memória para a árvore
+    RBTree *T = malloc(sizeof(RBTree));
+    //Verifica se a alocação foi bem-sucedida
+    if(T){
+        //Aloca memória para o nó sentinela nil
+        T->nil = malloc(sizeof(Node));
+        T->nil->data = 0;
+        T->nil->color = BLACK; //nó nil é sempre preto
+        //nó nil aponta para si mesmo
+        T->nil->left = T->nil; 
+        T->nil->right = T->nil;
+        T->nil->parent = T->nil;
+        //raiz da árvore aponta para o nó nil
+        T->root = T->nil;
+    }
+    //Retorna o ponteiro para a árvore alocada
+    return T;
+}
+
 //Função para alocar memória para um novo nó
-Node* nodeAlloc(int data){
+Node* nodeAlloc(RBTree* T, int data){
     Node *novo = malloc(sizeof(Node));
     if(novo){
         novo->data = data;
         novo->color = RED;//novo nó é sempre vermelho
-        novo->left = NULL;
-        novo->right = NULL;
-        novo->parent = NULL;
-        novo->height = 0;
+        //ponteiros do novo nó apontam para o nó nil da árvore
+        novo->left = T->nil;
+        novo->right = T->nil;
+        novo->parent = T->nil;
     } 
     return novo;
 }
@@ -37,37 +63,27 @@ void nodeFree(Node* node){
     free(node);
 }
 
-//Definição da estrutura da árvore vermelho-preto
-typedef struct {
-    Node *root;
-    Node *nil;
-} RBTree;
-
-//Função para alocar memória para uma nova árvore vermelho-preto
-RBTree* rbTreeAlloc(){
-    RBTree *T = malloc(sizeof(RBTree));
-    if(T){
-        T->nil = nodeAlloc(0);//nó nil é sempre preto
-        T->nil->color = BLACK;
-        T->root = T->nil;
-    }
-
-    return T;
-}
-
 //Função para liberar a memória da árvore vermelho-preto recursivamente
-void rbTreeFreeRec(Node* node){
-    if(node){
-        rbTreeFreeRec(node->left);
-        rbTreeFreeRec(node->right);
+void rbTreeFreeRec(RBTree* T, Node* node){
+    //Verifica se o nó não é o nó nil e não é nulo
+    if(node!= T->nil && node!=NULL){
+        rbTreeFreeRec(T, node->left);
+        rbTreeFreeRec(T, node->right);
         nodeFree(node);
     }
 }
 
-//Função para liberar a memmória da árvore vermelho-preto
+//Função para liberar árvore da memória
 void rbTreeFree(RBTree* T){
+    //Se a árvore existir
     if(T){
-        rbTreeFreeRec(T->root);
+        //remover recursivamente
+        rbTreeFreeRec(T, T->root);
+        //Libera o nó sentinela se tiver sido alocado
+        if(T->nil){
+            free(T->nil);
+        }
+        //Por fim libera a árvore
         free(T);
     }
 }
