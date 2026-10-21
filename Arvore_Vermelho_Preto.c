@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
+
+int int_comp(const void *a, const void *b);
 
 typedef enum Color { 
     RED, BLACK //cores dos nós da árvore vermelho-preto
@@ -368,5 +371,272 @@ void rbDelete(RBTree* T, Node* z) {
     nodeFree(z);                            // Libera a memória do nó removido
 }
 
+Node* rb_search(RBTree* T, Node* x, int key) {
+    while (x != T->nil && key != x->data) {
+        if (key < x->data)
+            x = x->left;
+        else
+            x = x->right;
+    }
+    return x;
+}
+
+Node* rbMax(RBTree* T, Node* x) {
+    while (x->right != T->nil)
+        x = x->right;
+    return x;
+}
+
+int rb_size(RBTree* T, Node* x) {
+    if (x == T->nil)
+        return 0;
+    return 1 + rb_size(T, x->left) + rb_size(T, x->right);
+}
+
+void rb_store(RBTree* T, Node* nd, int *arr, int *index) {
+    if (nd != T->nil) {
+        rb_store(T, nd->left, arr, index);
+        arr[(*index)++] = nd->data;
+        rb_store(T, nd->right, arr, index);
+    }
+}
+
+void rb_printRec(RBTree* T, Node* nd) {
+    if (nd != T->nil) {
+        rb_printRec(T, nd->left);
+        printf("%02d%c ", nd->data, nd->color == RED ? 'V' : 'P');
+        rb_printRec(T, nd->right);
+    }
+}
+
+void rb_print(RBTree* T) {
+    printf("RBT: [ ");
+    rb_printRec(T, T->root);
+    printf("]\n");
+}
+
+void rb_printTreeRec(RBTree* T, Node* root, int space) {
+    if (root != T->nil) {
+        space += 6;
+
+        rb_printTreeRec(T, root->right, space);
+
+        printf("\n");
+        for (int i = 6; i < space; i++)
+            printf(" ");
+
+        printf("%02d(%c)\n", root->data, root->color == RED ? 'V' : 'P');
+
+        rb_printTreeRec(T, root->left, space);
+    }
+}
+
+void rb_printTree(RBTree* T) {
+    rb_printTreeRec(T, T->root, 0);
+}
+
+/*------------------------------------------------------------------------------
+ * Verificação das propriedades da árvore vermelho-preto
+ */
+
+// Verifica se a raiz é preta
+bool rb_checkRoot(RBTree* T) {
+    return T->root == T->nil || T->root->color == BLACK;
+}
+
+// Verifica se nenhum nó vermelho tem filho vermelho
+bool rb_checkRedChildren(RBTree* T, Node* nd) {
+    if (nd == T->nil)
+        return true;
+    if (nd->color == RED) {
+        if (nd->left->color == RED || nd->right->color == RED)
+            return false;
+    }
+    return rb_checkRedChildren(T, nd->left) && rb_checkRedChildren(T, nd->right);
+}
+
+// Verifica se todos os caminhos têm a mesma black-height
+bool rb_checkBlackHeight(RBTree* T, Node* nd, int bh_count, int expected_bh) {
+    if (nd == T->nil)
+        return bh_count == expected_bh;
+    if (nd->color == BLACK)
+        bh_count++;
+    return rb_checkBlackHeight(T, nd->left, bh_count, expected_bh) &&
+           rb_checkBlackHeight(T, nd->right, bh_count, expected_bh);
+}
+
+// Verifica todas as propriedades RB + conteúdo dos dados
+bool rb_check(RBTree* T, const int * const data, const int N) {
+    const int tsize = rb_size(T, T->root);
+
+    if (tsize != N)
+        return false;
+    if (N == 0)
+        return rb_checkRoot(T);
+
+    if (!rb_checkRoot(T))
+        return false;
+    if (!rb_checkRedChildren(T, T->root))
+        return false;
+
+    int expected_bh = bh(T, T->root);
+    if (!rb_checkBlackHeight(T, T->root, 0, expected_bh))
+        return false;
+
+    int *arr = (int *)malloc(sizeof(int) * N);
+    memcpy(arr, data, sizeof(int) * N);
+    qsort(arr, N, sizeof(int), int_comp);
+
+    int *tarr = (int *)malloc(sizeof(int) * tsize);
+    int index = 0;
+    rb_store(T, T->root, tarr, &index);
+
+    bool match = true;
+    for (int i = 0; i < N && match; i++) {
+        if (arr[i] != tarr[i])
+            match = false;
+    }
+
+    free(tarr);
+    free(arr);
+    return match;
+}
+
+/*------------------------------------------------------------------------------
+ * Permutação de um Arranjo
+ */
+
+void swap(int *a, int *b) {
+    const int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void perm_invert(int *arr, int inicio, int fim) {
+    while (inicio < fim) {
+        swap(&arr[inicio], &arr[fim]);
+        inicio++;
+        fim--;
+    }
+}
+
+bool perm_next(int *arr, int tamanho) {
+    int i = tamanho - 2;
+
+    while (i >= 0 && arr[i] >= arr[i + 1])
+        i--;
+
+    if (i < 0)
+        return false;
+
+    int j = tamanho - 1;
+    while (arr[j] <= arr[i])
+        j--;
+
+    swap(&arr[i], &arr[j]);
+    perm_invert(arr, i + 1, tamanho - 1);
+    return true;
+}
+
+int int_comp(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+/*------------------------------------------------------------------------------
+ * Funções Auxiliares
+ */
+
+void data_print(const int * const data, const int N) {
+    printf("data: [ ");
+    for (int i = 0; i < N; i++)
+        printf("%02d ", data[i]);
+    printf("]\n");
+}
+
+int arr_remove(int *arr, int N, int value) {
+    for (int i = 0; i < N; i++) {
+        if (arr[i] == value) {
+            for (int j = i; j < N - 1; j++)
+                arr[j] = arr[j + 1];
+            N--;
+            i--;
+        }
+    }
+    return N;
+}
+
+/*------------------------------------------------------------------------------
+ * Programa Principal - Bateria de Testes
+ */
+
 int main() {
+    int DATA_INSERT[] = {1, 2, 3, 4, 5};
+    int DATA_REMOVE[] = {1, 2, 3, 4, 5};
+    const int N = 5;
+
+    int *data_insert, *data_remove;
+
+    data_insert = (int *)malloc(sizeof(int) * N);
+    memcpy(data_insert, DATA_INSERT, sizeof(int) * N);
+
+    int total_testes = 0;
+
+    do {
+        data_remove = (int *)malloc(sizeof(int) * N);
+        memcpy(data_remove, DATA_REMOVE, sizeof(int) * N);
+
+        do {
+            RBTree *T = rbTreeAlloc();
+
+            printf("============================================\n");
+            printf("Dados para Insercao:\n\t");
+            data_print(data_insert, N);
+
+            for (int i = 0; i < N; i++) {
+                printf("Inserindo: %02d\n", data_insert[i]);
+                rb_insert(T, data_insert[i]);
+                rb_print(T);
+                assert(rb_check(T, data_insert, i + 1));
+            }
+
+            printf("Arvore apos todas as INSERCOES:\n");
+            rb_printTree(T);
+
+            printf("Dados para Remocao:\n\t");
+            data_print(data_remove, N);
+            int *arr = (int *)malloc(sizeof(int) * N);
+            int asize = N;
+            memcpy(arr, data_insert, sizeof(int) * asize);
+
+            for (int i = 0; i < N; i++) {
+                printf("Removendo: %02d\n", data_remove[i]);
+                Node *nd = rb_search(T, T->root, data_remove[i]);
+                assert(nd != T->nil);
+                rbDelete(T, nd);
+                rb_print(T);
+                asize = arr_remove(arr, asize, data_remove[i]);
+                assert(rb_check(T, arr, asize));
+            }
+
+            printf("Arvore apos todas as REMOCOES:\n");
+            rb_printTree(T);
+
+            free(arr);
+            rbTreeFree(T);
+
+            total_testes++;
+
+        } while (perm_next(data_remove, N));
+
+        free(data_remove);
+
+    } while (perm_next(data_insert, N));
+
+    free(data_insert);
+
+    printf("\n========================================\n");
+    printf("TODOS OS %d TESTES PASSARAM!\n", total_testes);
+    printf("========================================\n");
+
+    return EXIT_SUCCESS;
 }
