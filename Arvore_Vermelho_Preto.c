@@ -680,6 +680,7 @@ int main() {
                 printf("Inserindo: %02d\n", data_insert[i]);
                 rb_insert(T, data_insert[i]);
                 rb_print(T);
+                rb_printTree(T);
                 assert(rb_check(T, data_insert, i + 1));
             }
 
@@ -701,6 +702,7 @@ int main() {
                 assert(nd != T->nil);//o valor precisa existir na árvore
                 rbDelete(T, nd);
                 rb_print(T);
+                rb_printTree(T);
                 asize = arr_remove(arr, asize, data_remove[i]);
                 assert(rb_check(T, arr, asize));
             }
