@@ -681,6 +681,7 @@ int main() {
                 rb_insert(T, data_insert[i]);
                 rb_print(T);
                 rb_printTree(T);
+                //Compara a árvore com os i + 1 primeiros valores de data_insert, que são os que já foram inseridos
                 assert(rb_check(T, data_insert, i + 1));
             }
 
@@ -699,11 +700,13 @@ int main() {
             for (int i = 0; i < N; i++) {
                 printf("Removendo: %02d\n", data_remove[i]);
                 Node *nd = rb_search(T, T->root, data_remove[i]);
-                assert(nd != T->nil);//o valor precisa existir na árvore
+                //Confere que o valor a remover existe na árvore.
+                assert(nd != T->nil);//Sem ele, rb_search devolveria T->nil e o rbDelete receberia um nó inválido
                 rbDelete(T, nd);
                 rb_print(T);
                 rb_printTree(T);
                 asize = arr_remove(arr, asize, data_remove[i]);
+                //compara a árvore com o array arr, de onde o arr_remove vai tirando cada valor removido, arr é a resposta certa do que deveria sobrar
                 assert(rb_check(T, arr, asize));
             }
 
